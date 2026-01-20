@@ -1,0 +1,25 @@
+{
+  "name": "tripmakerweb-be",
+  "version": "1.0.0",
+  "description": "Node js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avinash6982/TripMakerWeb-BE.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/avinash6982/TripMakerWeb-BE/issues"
+  },
+  "homepage": "https://github.com/avinash6982/TripMakerWeb-BE#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
