@@ -25,6 +25,12 @@ const allowAnyOrigin =
 
 const PASSWORD_SALT_BYTES = 16;
 const PASSWORD_KEYLEN = 64;
+const DEFAULT_PROFILE = {
+  phone: "",
+  country: "",
+  language: "en",
+  currencyType: "USD",
+};
 
 let writeQueue = Promise.resolve();
 
@@ -57,7 +63,7 @@ function applyCorsHeaders(req, res) {
 
 app.use((req, res, next) => {
   const originAllowed = applyCorsHeaders(req, res);
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization"
@@ -158,6 +164,28 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function ensureProfile(user) {
+  const currentProfile = user.profile || {};
+  user.profile = {
+    ...DEFAULT_PROFILE,
+    ...currentProfile,
+  };
+  return user.profile;
+}
+
+function buildProfileResponse(user) {
+  const profile = ensureProfile(user);
+  return {
+    id: user.id,
+    email: user.email,
+    phone: profile.phone,
+    country: profile.country,
+    language: profile.language,
+    currencyType: profile.currencyType,
+    createdAt: user.createdAt,
+  };
+}
+
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
@@ -186,6 +214,7 @@ app.post("/register", async (req, res, next) => {
       id: crypto.randomUUID(),
       email,
       passwordHash: hashPassword(password),
+      profile: { ...DEFAULT_PROFILE },
       createdAt: new Date().toISOString(),
     };
 
@@ -227,6 +256,72 @@ app.post("/login", async (req, res, next) => {
       email: user.email,
       message: "Login successful.",
     });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get("/profile/:id", async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || "");
+    const users = await readUsers();
+    const user = users.find((candidate) => candidate.id === userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    return res.status(200).json(buildProfileResponse(user));
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.put("/profile/:id", async (req, res, next) => {
+  try {
+    const userId = String(req.params.id || "");
+    const users = await readUsers();
+    const user = users.find((candidate) => candidate.id === userId);
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "email")) {
+      const normalizedEmail = normalizeEmail(req.body.email);
+      if (!normalizedEmail) {
+        return res.status(400).json({ error: "Email must be provided." });
+      }
+
+      const existing = users.find(
+        (candidate) =>
+          candidate.email === normalizedEmail && candidate.id !== userId
+      );
+      if (existing) {
+        return res.status(409).json({ error: "Email is already registered." });
+      }
+      user.email = normalizedEmail;
+    }
+
+    const profile = ensureProfile(user);
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "phone")) {
+      profile.phone = String(req.body.phone ?? "");
+    }
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "country")) {
+      profile.country = String(req.body.country ?? "");
+    }
+    if (req.body && Object.prototype.hasOwnProperty.call(req.body, "language")) {
+      profile.language = String(req.body.language ?? "");
+    }
+    if (
+      req.body &&
+      Object.prototype.hasOwnProperty.call(req.body, "currencyType")
+    ) {
+      profile.currencyType = String(req.body.currencyType ?? "");
+    }
+
+    await writeUsers(users);
+    return res.status(200).json(buildProfileResponse(user));
   } catch (error) {
     return next(error);
   }

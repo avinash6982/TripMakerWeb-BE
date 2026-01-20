@@ -50,6 +50,12 @@ Users are stored as an array in the JSON file:
     "id": "uuid",
     "email": "user@example.com",
     "passwordHash": "salt:hash",
+    "profile": {
+      "phone": "",
+      "country": "",
+      "language": "en",
+      "currencyType": "USD"
+    },
     "createdAt": "2026-01-20T12:34:56.000Z"
   }
 ]
@@ -115,6 +121,61 @@ Returns server status.
 ```json
 { "status": "ok" }
 ```
+
+### `GET /profile/:id`
+
+Fetch a user's profile by user id.
+
+**Success Response (200)**
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "phone": "",
+  "country": "",
+  "language": "en",
+  "currencyType": "USD",
+  "createdAt": "2026-01-20T12:34:56.000Z"
+}
+```
+
+**Error Responses**
+- `404` if the user is not found.
+
+### `PUT /profile/:id`
+
+Update profile fields and/or email.
+
+**Request**
+```json
+{
+  "email": "new@example.com",
+  "phone": "+1 555 0100",
+  "country": "US",
+  "language": "en",
+  "currencyType": "USD"
+}
+```
+
+All fields are optional. Missing fields keep their current values.
+
+**Success Response (200)**
+```json
+{
+  "id": "uuid",
+  "email": "new@example.com",
+  "phone": "+1 555 0100",
+  "country": "US",
+  "language": "en",
+  "currencyType": "USD",
+  "createdAt": "2026-01-20T12:34:56.000Z"
+}
+```
+
+**Error Responses**
+- `400` if email is provided but empty after normalization.
+- `404` if the user is not found.
+- `409` if the email is already registered to another user.
 
 ## Example Usage
 
