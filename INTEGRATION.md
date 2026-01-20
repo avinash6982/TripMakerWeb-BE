@@ -25,8 +25,20 @@ endpoints, payloads, or configuration change.
 | --- | --- | --- |
 | `PORT` | `3000` | Port used by the HTTP server. |
 | `USER_DB_PATH` | `data/users.json` | Path to the JSON file that stores users. |
+| `CORS_ORIGINS` | `*` | Comma-separated list of allowed origins or `*`. |
 
-The users file is created automatically if it does not exist.
+The users file is created automatically if it does not exist. When running on
+Vercel, the filesystem is read-only, so the server defaults to
+`/tmp/tripmaker-users.json` (ephemeral). Set `USER_DB_PATH` explicitly if you
+want a different writable location.
+
+## CORS
+
+If the frontend runs on another origin, allow it via `CORS_ORIGINS`:
+
+```
+CORS_ORIGINS=https://trip-maker-web.vercel.app
+```
 
 ## Data Storage Format
 

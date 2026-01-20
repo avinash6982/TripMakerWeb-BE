@@ -1,12 +1,27 @@
 const express = require("express");
 const fs = require("fs/promises");
+const os = require("os");
 const path = require("path");
 const crypto = require("crypto");
 
 const app = express();
 
 const PORT = Number(process.env.PORT) || 3000;
-const USERS_FILE = path.resolve(process.env.USER_DB_PATH || "data/users.json");
+const DEFAULT_USER_DB_PATH = path.resolve("data/users.json");
+const TMP_USER_DB_PATH = path.join(os.tmpdir(), "tripmaker-users.json");
+let usersFilePath = path.resolve(
+  process.env.USER_DB_PATH ||
+    (process.env.VERCEL ? TMP_USER_DB_PATH : DEFAULT_USER_DB_PATH)
+);
+
+const rawCorsOrigins =
+  process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "*";
+const allowedOrigins = rawCorsOrigins
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const allowAnyOrigin =
+  allowedOrigins.length === 0 || allowedOrigins.includes("*");
 
 const PASSWORD_SALT_BYTES = 16;
 const PASSWORD_KEYLEN = 64;
@@ -15,23 +30,75 @@ let writeQueue = Promise.resolve();
 
 app.use(express.json({ limit: "10kb" }));
 
+function getUsersFilePath() {
+  return usersFilePath;
+}
+
+function isReadonlyError(error) {
+  return error && (error.code === "EROFS" || error.code === "EPERM");
+}
+
+function applyCorsHeaders(req, res) {
+  const origin = req.headers.origin;
+  if (!origin) {
+    return true;
+  }
+  if (allowAnyOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    return true;
+  }
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Vary", "Origin");
+    return true;
+  }
+  return false;
+}
+
+app.use((req, res, next) => {
+  const originAllowed = applyCorsHeaders(req, res);
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
+  if (req.method === "OPTIONS") {
+    return originAllowed
+      ? res.sendStatus(204)
+      : res.status(403).json({ error: "Origin not allowed." });
+  }
+  if (!originAllowed) {
+    return res.status(403).json({ error: "Origin not allowed." });
+  }
+  return next();
+});
+
 async function ensureUsersFile() {
-  const dir = path.dirname(USERS_FILE);
-  await fs.mkdir(dir, { recursive: true });
+  const currentPath = getUsersFilePath();
+  const dir = path.dirname(currentPath);
   try {
-    await fs.access(USERS_FILE);
-  } catch (error) {
-    if (error && error.code !== "ENOENT") {
-      throw error;
+    await fs.mkdir(dir, { recursive: true });
+    try {
+      await fs.access(currentPath);
+    } catch (error) {
+      if (error && error.code !== "ENOENT") {
+        throw error;
+      }
+      await fs.writeFile(currentPath, "[]");
     }
-    await fs.writeFile(USERS_FILE, "[]");
+  } catch (error) {
+    if (isReadonlyError(error) && currentPath !== TMP_USER_DB_PATH) {
+      usersFilePath = TMP_USER_DB_PATH;
+      return ensureUsersFile();
+    }
+    throw error;
   }
 }
 
 async function readUsers() {
   await writeQueue;
   await ensureUsersFile();
-  const raw = await fs.readFile(USERS_FILE, "utf8");
+  const raw = await fs.readFile(getUsersFilePath(), "utf8");
   if (!raw.trim()) {
     return [];
   }
@@ -46,9 +113,22 @@ async function readUsers() {
 
 async function writeUsers(users) {
   await ensureUsersFile();
-  writeQueue = writeQueue.then(() =>
-    fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2))
-  );
+  writeQueue = writeQueue.then(async () => {
+    try {
+      await fs.writeFile(getUsersFilePath(), JSON.stringify(users, null, 2));
+    } catch (error) {
+      if (isReadonlyError(error) && getUsersFilePath() !== TMP_USER_DB_PATH) {
+        usersFilePath = TMP_USER_DB_PATH;
+        await ensureUsersFile();
+        await fs.writeFile(
+          getUsersFilePath(),
+          JSON.stringify(users, null, 2)
+        );
+      } else {
+        throw error;
+      }
+    }
+  });
   return writeQueue;
 }
 
@@ -158,6 +238,9 @@ app.use((req, res) => {
 
 app.use((err, _req, res, _next) => {
   const status = err.statusCode || err.status || 500;
+  if (status >= 500) {
+    console.error(err);
+  }
   res.status(status).json({
     error: status === 500 ? "Internal server error." : err.message,
   });
