@@ -530,27 +530,53 @@ const handleValidationErrors = (req, res, next) => {
 // SWAGGER UI
 // ============================================================================
 
-// Serve Swagger UI with proper configuration for Vercel
-const swaggerUiOptions = {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: "TripMaker API Docs",
-  swaggerOptions: {
-    persistAuthorization: true,
-  },
-};
-
-app.get("/api-docs", (req, res) => {
-  res.send(swaggerUi.generateHTML(swaggerSpec, swaggerUiOptions));
-});
-
-// Serve swagger UI assets
-app.use("/api-docs", swaggerUi.serve);
-
 // Serve swagger spec as JSON
 app.get("/api-docs.json", (req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);
+});
+
+// Serve Swagger UI using CDN (works reliably on Vercel)
+app.get("/api-docs", (req, res) => {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripMaker API Docs</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui.css" />
+  <style>
+    body { margin: 0; padding: 0; }
+    .swagger-ui .topbar { display: none; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.5/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      window.ui = SwaggerUIBundle({
+        url: '/api-docs.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        persistAuthorization: true
+      });
+    };
+  </script>
+</body>
+</html>
+  `;
+  res.send(html);
 });
 
 // ============================================================================
