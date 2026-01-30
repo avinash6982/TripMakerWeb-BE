@@ -269,10 +269,27 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 // MIDDLEWARE
 // ============================================================================
 
-// Security headers
+// Security headers with CSP configured for Swagger UI
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Swagger UI inline scripts
+          "https://unpkg.com", // Allow Swagger UI from CDN
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Swagger UI inline styles
+          "https://unpkg.com", // Allow Swagger UI CSS from CDN
+        ],
+        imgSrc: ["'self'", "data:", "https:"], // Allow images from CDN
+        connectSrc: ["'self'"], // API calls to same origin
+      },
+    },
   })
 );
 
