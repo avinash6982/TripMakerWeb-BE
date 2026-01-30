@@ -530,10 +530,22 @@ const handleValidationErrors = (req, res, next) => {
 // SWAGGER UI
 // ============================================================================
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+// Serve Swagger UI with proper configuration for Vercel
+const swaggerUiOptions = {
+  explorer: true,
   customCss: '.swagger-ui .topbar { display: none }',
   customSiteTitle: "TripMaker API Docs",
-}));
+  swaggerOptions: {
+    persistAuthorization: true,
+  },
+};
+
+app.get("/api-docs", (req, res) => {
+  res.send(swaggerUi.generateHTML(swaggerSpec, swaggerUiOptions));
+});
+
+// Serve swagger UI assets
+app.use("/api-docs", swaggerUi.serve);
 
 // Serve swagger spec as JSON
 app.get("/api-docs.json", (req, res) => {
