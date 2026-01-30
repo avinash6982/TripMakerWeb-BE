@@ -287,7 +287,7 @@ app.use(
           "https://unpkg.com", // Allow Swagger UI CSS from CDN
         ],
         imgSrc: ["'self'", "data:", "https:"], // Allow images from CDN
-        connectSrc: ["'self'"], // API calls to same origin
+        connectSrc: ["'self'", "https://unpkg.com"], // API calls + source maps from CDN
       },
     },
   })
