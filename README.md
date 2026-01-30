@@ -21,13 +21,17 @@ npm run dev
 
 ## 📚 Documentation
 
+### For Frontend Developers 👉
+**[FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md)** - Everything you need to integrate with this backend
+
 ### API Documentation (Single Source of Truth)
-- **Swagger UI:** http://localhost:3000/api-docs
+- **Swagger UI:** http://localhost:3000/api-docs (Local)
+- **Swagger UI:** https://trip-maker-web-be.vercel.app/api-docs (Production)
 - **OpenAPI JSON:** http://localhost:3000/api-docs.json
 
-### Integration Guides
-- **[FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md)** - Complete guide for frontend integration with JWT
-- **[INTEGRATION.md](./INTEGRATION.md)** - API endpoints and configuration reference
+### Quick Reference
+- **[INTEGRATION.md](./INTEGRATION.md)** - API endpoints, configuration, and curl examples
+- **[CURSOR_CLOUD_WORKFLOW.md](./CURSOR_CLOUD_WORKFLOW.md)** - Zero-config development workflow
 
 ## ✨ Features
 
@@ -202,7 +206,18 @@ This backend is designed to work with the **TripMakerWeb** frontend.
 
 **Frontend Repository:** https://github.com/avinash6982/TripMakerWeb
 
-**Migration Guide:** See [FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md) for detailed instructions on integrating JWT authentication with the frontend.
+### 👉 For Frontend Developers
+**Share this file:** [FRONTEND_MIGRATION_GUIDE.md](./FRONTEND_MIGRATION_GUIDE.md)
+
+This guide contains:
+- ✅ Complete step-by-step code changes
+- ✅ JWT token storage implementation
+- ✅ Authorization header setup
+- ✅ Testing checklist
+- ✅ Error handling
+- ✅ Migration checklist
+
+**Swagger URL (after deployment):** https://trip-maker-web-be.vercel.app/api-docs
 
 ## 📝 Project Structure
 
